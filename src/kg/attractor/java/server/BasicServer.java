@@ -10,11 +10,13 @@ import kg.attractor.java.model.*;
 
 import java.io.*;
 import java.net.InetSocketAddress;
+import java.net.URLDecoder;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -34,6 +36,95 @@ public class BasicServer {
 
     registerGet("/calendar", this::calendarHandler);
     registerGet("/day", this::dayHandler);
+    registerGet("/record", this::recordHandler);
+
+    registerPost("/add-patient", this::addPatientHandler);
+    registerPost("/delete-patient", this::deletePatientHandler);
+  }
+
+  private void recordHandler(HttpExchange exchange) {
+    Map<String, Object> data = new HashMap<>();
+    String query = exchange.getRequestURI().getQuery();
+    Map<String, String> params = Utils.parseUrlEncoded(query, "&");
+
+    String dateStr = params.get("date");
+
+    try {
+      if (dateStr == null || dateStr.isBlank()) {
+        redirect(exchange, "/calendar");
+        return;
+      }
+
+      data.put("date", dateStr);
+
+      renderTemplate(exchange, "record.ftl", data);
+
+    } catch (Exception e) {
+      e.printStackTrace();
+      renderError(exchange, "Ошибка открытия формы записи: " + e.getMessage());
+    }
+  }
+
+  private void addPatientHandler(HttpExchange exchange) {
+    String rawBody = getRequestBody(exchange);
+    Map<String, String> params = Utils.parseUrlEncoded(rawBody, "&");
+
+    try {
+      String dateStr = params.get("date");
+      String fullName = java.net.URLDecoder.decode(params.get("fullName"), StandardCharsets.UTF_8);
+      String timeStr = java.net.URLDecoder.decode(params.get("time"), StandardCharsets.UTF_8);
+      String type = java.net.URLDecoder.decode(params.get("type"), StandardCharsets.UTF_8);
+      String symptoms = java.net.URLDecoder.decode(params.get("symptoms"), StandardCharsets.UTF_8);
+
+      String birthDateStr = params.get("birthDate");
+
+      LocalDate date = LocalDate.parse(dateStr);
+      LocalTime time = LocalTime.parse(timeStr);
+
+      LocalDate birthDate = LocalDate.parse(birthDateStr);
+
+      java.time.LocalDateTime appointmentDateTime = java.time.LocalDateTime.of(date, time);
+      if (appointmentDateTime.isBefore(java.time.LocalDateTime.now())) {
+        renderError(exchange, "Ошибка: Вы пытаетесь записаться на прошедшее время. Выберите актуальное время и дату");
+        return;
+      }
+
+      Patient newPatient = new Patient(fullName, birthDate, type, symptoms, time);
+
+      boolean success = hospitalRepository.addPatient(date, newPatient);
+
+      if (!success) {
+        renderError(exchange, "Ошибка: Время " + time + " на дату " + date + " уже занято.");
+        return;
+      }
+
+      redirect(exchange, "/day?date=" + dateStr);
+
+    } catch (Exception e) {
+      e.printStackTrace();
+      renderError(exchange, "Ошибка добавления: " + e.getMessage());
+    }
+  }
+
+  private void deletePatientHandler(HttpExchange exchange) {
+    String rawBody = getRequestBody(exchange);
+    Map<String, String> params = Utils.parseUrlEncoded(rawBody, "&");
+
+    try {
+      String dateStr = params.get("date");
+      String id = params.get("id");
+
+      if (dateStr != null && id != null) {
+        LocalDate date = LocalDate.parse(dateStr);
+        hospitalRepository.deletePatient(date, id.trim());
+
+        redirect(exchange, "/day?date=" + dateStr);
+      }
+
+    } catch (Exception e) {
+      e.printStackTrace();
+      renderError(exchange, "Ошибка удаления: " + e.getMessage());
+    }
   }
 
   private void dayHandler(HttpExchange exchange) {
