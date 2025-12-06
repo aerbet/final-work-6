@@ -42,7 +42,7 @@
                             ✎
                         </a>
 
-                        <form action="/delete-patient" method="post" onsubmit="return confirm('Вы уверены?');" style="margin: 0;">
+                        <form action="/delete-patient" method="post" style="margin: 0;">
                             <input type="hidden" name="date" value="${date}">
                             <input type="hidden" name="id" value="${p.id}">
                             <button type="submit" class="btn-delete">✕</button>
