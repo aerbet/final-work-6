@@ -109,4 +109,14 @@ public class HospitalRepository {
     }
     return removed;
   }
+
+  public Patient getPatient(LocalDate date, String id) {
+    List<Patient> dailyList = schedule.get(date);
+    if (dailyList == null) return null;
+
+    return dailyList.stream()
+            .filter(p -> p.getId().equals(id))
+            .findFirst()
+            .orElse(null);
+  }
 }
