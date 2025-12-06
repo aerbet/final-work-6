@@ -6,6 +6,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -75,5 +76,9 @@ public final class Generator {
         return removeExtra.matcher(makeGibberish(0,1))
                 .replaceAll("")
                 .replace(" ", "");
+    }
+
+    public static String makeId() {
+        return UUID.randomUUID().toString();
     }
 }

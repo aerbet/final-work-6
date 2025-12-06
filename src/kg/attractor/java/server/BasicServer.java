@@ -37,34 +37,31 @@ public class BasicServer {
 
 
   private void calendarHandler(HttpExchange exchange) {
-    String query = exchange.getRequestURI().getQuery();
-    Map<String, String> params = Utils.parseUrlEncoded(query, "&");
+    Map<String, Object> data = new HashMap<>();
 
     LocalDate today = LocalDate.now();
     int currentYear = today.getYear();
     int currentMonth = today.getMonthValue();
 
-    String monthYearStr = params.get("monthYear");
-    String monthStr = params.get("month");
-    String yearStr = params.get("year");
-
     try {
-      if (monthYearStr != null) {
-        LocalDate date = LocalDate.parse(monthYearStr + "-01");
-        currentYear = date.getYear();
-        currentMonth = date.getMonthValue();
-      } else if (monthStr != null && yearStr != null) {
-        currentYear = Integer.parseInt(yearStr);
-        currentMonth = Integer.parseInt(monthStr);
+      String query = exchange.getRequestURI().getQuery();
+      if (query != null) {
+        Map<String, String> params = Utils.parseUrlEncoded(query, "&");
+        String monthYearStr = params.get("monthYear");
+
+        if (monthYearStr != null && !monthYearStr.isBlank()) {
+          LocalDate date = LocalDate.parse(monthYearStr + "-01");
+          currentYear = date.getYear();
+          currentMonth = date.getMonthValue();
+        }
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      System.err.println("Ошибка при разборе даты из URL, используем текущую дату: " + e.getMessage());
     }
 
     LocalDate firstDayOfMonth = LocalDate.of(currentYear, currentMonth, 1);
     int daysInMonth = firstDayOfMonth.lengthOfMonth();
-    int dayOfWeek = firstDayOfMonth.getDayOfWeek().getValue();
-    int offset = dayOfWeek - 1;
+    int offset = firstDayOfMonth.getDayOfWeek().getValue() - 1;
 
     List<CalendarDay> calendar = new ArrayList<>();
 
@@ -75,27 +72,38 @@ public class BasicServer {
     for (int day = 1; day <= daysInMonth; day++) {
       LocalDate date = LocalDate.of(currentYear, currentMonth, day);
       List<Patient> patients = hospitalRepository.getPatientsByDate(date);
-
-      boolean hasAppointments = patients.size() > 0;
-      calendar.add(new CalendarDay(day, hasAppointments, patients.size()));
+      boolean isToday = date.equals(today);
+      calendar.add(new CalendarDay(day, isToday, patients));
     }
 
-    LocalDate navDate = firstDayOfMonth;
-    LocalDate prevMonthDate = navDate.minusMonths(1);
-    LocalDate nextMonthDate = navDate.plusMonths(1);
+    while (calendar.size() % 7 != 0) {
+      calendar.add(new CalendarDay());
+    }
 
-    Map<String, Object> data = new HashMap<>();
+    LocalDate prevMonthDate = firstDayOfMonth.minusMonths(1);
+    LocalDate nextMonthDate = firstDayOfMonth.plusMonths(1);
+
     data.put("calendar", calendar);
     data.put("currentYear", currentYear);
     data.put("currentMonth", currentMonth);
-    data.put("monthName", firstDayOfMonth.getMonth().getDisplayName(java.time.format.TextStyle.FULL, new Locale("ru")));
 
-    data.put("prevYear", prevMonthDate.getYear());
-    data.put("prevMonth", prevMonthDate.getMonthValue());
-    data.put("nextYear", nextMonthDate.getYear());
-    data.put("nextMonth", nextMonthDate.getMonthValue());
+    String monthNameVal = "Неизвестно";
+    try {
+      monthNameVal = firstDayOfMonth.getMonth().getDisplayName(java.time.format.TextStyle.FULL_STANDALONE, new Locale("ru"));
+    } catch (Exception e) {
+      monthNameVal = firstDayOfMonth.getMonth().name();
+    }
+    data.put("monthName", monthNameVal);
 
-    renderTemplate(exchange, "calendar.html", data);
+    String prevYearStr = String.valueOf(prevMonthDate.getYear());
+    String prevMonthStr = String.format("%02d", prevMonthDate.getMonthValue());
+    data.put("prevMonthYear", prevYearStr + "-" + prevMonthStr);
+
+    String nextYearStr = String.valueOf(nextMonthDate.getYear());
+    String nextMonthStr = String.format("%02d", nextMonthDate.getMonthValue());
+    data.put("nextMonthYear", nextYearStr + "-" + nextMonthStr);
+
+    renderTemplate(exchange, "calendar.ftl", data);
   }
 
   private void renderError(HttpExchange exchange, String errorMessage) {
@@ -145,6 +153,16 @@ public class BasicServer {
       }
     } catch (IOException | TemplateException e) {
       e.printStackTrace();
+      try {
+        String errorMessage = "500 Server Error:\n" + e.getMessage();
+        byte[] resp = errorMessage.getBytes(StandardCharsets.UTF_8);
+        exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=utf-8");
+        exchange.sendResponseHeaders(500, resp.length);
+        exchange.getResponseBody().write(resp);
+        exchange.getResponseBody().close();
+      } catch (IOException io) {
+        System.err.println("Не удалось отправить ошибку клиенту");
+      }
     }
   }
 
@@ -219,7 +237,7 @@ public class BasicServer {
   private void registerCommonHandlers() {
     server.createContext("/", this::handleIncomingServerRequests);
 
-    registerGet("/", exchange -> sendFile(exchange, makeFilePath("calendar.html"), ContentType.TEXT_HTML));
+    registerGet("/", this::calendarHandler);
 
     registerFileHandler(".css", ContentType.TEXT_CSS);
     registerFileHandler(".html", ContentType.TEXT_HTML);
