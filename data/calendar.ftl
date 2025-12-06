@@ -111,7 +111,7 @@
 
 		<#else>
 
-		<div class="calendar-cell ${day.isToday?string('today','')}">
+		<div class="calendar-cell ${day.today?string('today', '')}">
 			<div class="day-number">${day.dayNumber}</div>
 
 			<#list day.appointments as p>
@@ -121,18 +121,14 @@
 			</div>
 		</#list>
 
-		<#if day.appointmentCount > 2>
+        <#if day.appointmentCount gt 2>
 		<div class="event red">
 			+${day.appointmentCount - 2} еще
 		</div>
 	</#if>
-
 </div>
-
 </#if>
-
 </#list>
-
 </div>
 
 </div>
