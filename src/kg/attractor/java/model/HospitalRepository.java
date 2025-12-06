@@ -45,7 +45,7 @@ public class HospitalRepository {
     LocalDate today = LocalDate.now();
     String[] types = {"Первичный", "Вторичный"};
 
-    for (int i = 0; i < 7; i++) {
+    for (int i = 0; i < 31; i++) {
       LocalDate date = today.plusDays(i);
       int count = ThreadLocalRandom.current().nextInt(2, 6);
 
@@ -64,7 +64,6 @@ public class HospitalRepository {
         addPatientInternal(date, newPatient);
       }
     }
-    System.out.println("Сгенерированы демо-данные на 7 дней.");
   }
 
   private boolean addPatientInternal(LocalDate date, Patient patient) {

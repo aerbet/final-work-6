@@ -18,6 +18,7 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.TextStyle;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -37,9 +38,88 @@ public class BasicServer {
     registerGet("/calendar", this::calendarHandler);
     registerGet("/day", this::dayHandler);
     registerGet("/record", this::recordHandler);
+    registerGet("/edit", this::editHandler);
 
     registerPost("/add-patient", this::addPatientHandler);
     registerPost("/delete-patient", this::deletePatientHandler);
+    registerPost("/edit-patient", this::editPatientHandler);
+  }
+
+  private void editHandler(HttpExchange exchange) {
+    Map<String, Object> data = new HashMap<>();
+    String query = exchange.getRequestURI().getQuery();
+    Map<String, String> params = Utils.parseUrlEncoded(query, "&");
+
+    String dateStr = params.get("date");
+    String id = params.get("id");
+
+    try {
+      LocalDate date = LocalDate.parse(dateStr);
+      Patient patient = hospitalRepository.getPatientsByDate(date).stream()
+              .filter(p -> p.getId().equals(id))
+              .findFirst()
+              .orElseThrow(() -> new RuntimeException("Пациент не найден"));
+
+      data.put("date", dateStr);
+      data.put("patient", patient);
+
+      renderTemplate(exchange, "edit.ftl", data);
+    } catch (Exception e) {
+      e.printStackTrace();
+      renderError(exchange, "Ошибка при загрузке данных: " + e.getMessage());
+    }
+  }
+
+  private void editPatientHandler(HttpExchange exchange) {
+    String rawBody = getRequestBody(exchange);
+    Map<String, String> params = Utils.parseUrlEncoded(rawBody, "&");
+
+    try {
+      String id = params.get("id");
+      String oldDateStr = params.get("oldDate");
+      String newDateStr = params.get("newDate");
+
+      String fullName = URLDecoder.decode(params.get("fullName"), StandardCharsets.UTF_8);
+      String birthDateStr = params.get("birthDate");
+      String timeStr = URLDecoder.decode(params.get("time"), StandardCharsets.UTF_8);
+      String type = URLDecoder.decode(params.get("type"), StandardCharsets.UTF_8);
+      String symptoms = URLDecoder.decode(params.get("symptoms"), StandardCharsets.UTF_8);
+
+      LocalDate oldDate = LocalDate.parse(oldDateStr);
+      LocalDate newDate = LocalDate.parse(newDateStr);
+      LocalTime time = LocalTime.parse(timeStr);
+      LocalDate birthDate = LocalDate.parse(birthDateStr);
+
+      LocalDateTime newAppointmentDateTime = LocalDateTime.of(newDate, time);
+
+      if (birthDate.isAfter(LocalDate.now())) {
+        renderError(exchange, "Ошибка: Дата рождения не может быть в будущем!");
+        return;
+      }
+
+      if (newAppointmentDateTime.isBefore(LocalDateTime.now())) {
+        renderError(exchange, "Ошибка: Нельзя перенести запись на прошедшее время!");
+        return;
+      }
+
+      hospitalRepository.deletePatient(oldDate, id);
+
+      Patient updatedPatient = new Patient(fullName, birthDate, type, symptoms, time);
+      updatedPatient.setId(id);
+
+      boolean success = hospitalRepository.addPatient(newDate, updatedPatient);
+
+      if (!success) {
+        renderError(exchange, "Ошибка: Время " + time + " на дату " + newDate + " уже занято.");
+        return;
+      }
+
+      redirect(exchange, "/day?date=" + newDateStr);
+
+    } catch (Exception e) {
+      e.printStackTrace();
+      renderError(exchange, "Ошибка редактирования: " + e.getMessage());
+    }
   }
 
   private void recordHandler(HttpExchange exchange) {
@@ -71,10 +151,10 @@ public class BasicServer {
 
     try {
       String dateStr = params.get("date");
-      String fullName = java.net.URLDecoder.decode(params.get("fullName"), StandardCharsets.UTF_8);
-      String timeStr = java.net.URLDecoder.decode(params.get("time"), StandardCharsets.UTF_8);
-      String type = java.net.URLDecoder.decode(params.get("type"), StandardCharsets.UTF_8);
-      String symptoms = java.net.URLDecoder.decode(params.get("symptoms"), StandardCharsets.UTF_8);
+      String fullName = URLDecoder.decode(params.get("fullName"), StandardCharsets.UTF_8);
+      String timeStr = URLDecoder.decode(params.get("time"), StandardCharsets.UTF_8);
+      String type = URLDecoder.decode(params.get("type"), StandardCharsets.UTF_8);
+      String symptoms = URLDecoder.decode(params.get("symptoms"), StandardCharsets.UTF_8);
 
       String birthDateStr = params.get("birthDate");
 
@@ -83,8 +163,14 @@ public class BasicServer {
 
       LocalDate birthDate = LocalDate.parse(birthDateStr);
 
-      java.time.LocalDateTime appointmentDateTime = java.time.LocalDateTime.of(date, time);
-      if (appointmentDateTime.isBefore(java.time.LocalDateTime.now())) {
+      LocalDateTime appointmentDateTime = LocalDateTime.of(date, time);
+
+      if (birthDate.isAfter(LocalDate.now())) {
+        renderError(exchange, "Ошибка: Дата рождения не может быть в будущем!");
+        return;
+      }
+
+      if (appointmentDateTime.isBefore(LocalDateTime.now())) {
         renderError(exchange, "Ошибка: Вы пытаетесь записаться на прошедшее время. Выберите актуальное время и дату");
         return;
       }
@@ -207,7 +293,7 @@ public class BasicServer {
 
     String monthNameVal = "Неизвестно";
     try {
-      monthNameVal = firstDayOfMonth.getMonth().getDisplayName(java.time.format.TextStyle.FULL_STANDALONE, new Locale("ru"));
+      monthNameVal = firstDayOfMonth.getMonth().getDisplayName(TextStyle.FULL_STANDALONE, new Locale("ru"));
     } catch (Exception e) {
       monthNameVal = firstDayOfMonth.getMonth().name();
     }
@@ -284,12 +370,6 @@ public class BasicServer {
     }
   }
 
-  protected static String getContentType(HttpExchange exchange) {
-    return exchange.getRequestHeaders()
-            .getOrDefault("Content-Type", List.of(""))
-            .getFirst();
-  }
-
   protected static String getRequestBody(HttpExchange exchange) {
     InputStream stream = exchange.getRequestBody();
     Charset charset = StandardCharsets.UTF_8;
@@ -302,17 +382,6 @@ public class BasicServer {
     }
 
     return "";
-  }
-
-  protected void setCookie(HttpExchange exchange, Cookie cookie) {
-    exchange.getResponseHeaders().add("Set-Cookie", cookie.toString());
-  }
-
-  protected static String getCookies(HttpExchange exchange) {
-    return exchange.getRequestHeaders()
-            .getOrDefault("Cookie", List.of(""))
-            .getFirst();
-
   }
 
   private static String makeKey(String method, String route) {
