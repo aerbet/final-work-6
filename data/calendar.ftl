@@ -112,20 +112,26 @@
 		<#else>
 
 		<div class="calendar-cell ${day.today?string('today', '')}">
-			<div class="day-number">${day.dayNumber}</div>
 
-			<#list day.appointments as p>
-			<div class="event blue">
-				${p.fullName}<br>
-				${p.appointmentTime}
-			</div>
-		</#list>
+            <div class="day-number">
+                <a href="/day?date=${currentYear?c}-${currentMonth?string['00']}-${day.dayNumber?string['00']}"
+                   style="text-decoration: none; color: inherit; display:block; width: 100%;">
+                    ${day.dayNumber}
+                </a>
+            </div>
 
-        <#if day.appointmentCount gt 2>
-		<div class="event red">
-			+${day.appointmentCount - 2} еще
-		</div>
-	</#if>
+          <#list day.appointments as p>
+             <div class="event blue">
+                ${p.fullName}<br>
+                ${p.appointmentTime}
+             </div>
+          </#list>
+
+          <#if day.appointmentCount gt 2>
+             <div class="event red">
+                +${day.appointmentCount - 2} еще
+             </div>
+        </#if>
 </div>
 </#if>
 </#list>
