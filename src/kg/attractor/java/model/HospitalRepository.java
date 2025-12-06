@@ -80,7 +80,33 @@ public class HospitalRepository {
 
   public List<Patient> getPatientsByDate(LocalDate date) {
     List<Patient> list = schedule.getOrDefault(date, new ArrayList<>());
-    list.sort(Comparator.comparing(Patient::getAppointmentTime));
+    list.sort(Comparator.comparing(
+            Patient::getAppointmentTime,
+            Comparator.nullsLast(Comparator.naturalOrder())
+    ));
     return list;
+  }
+
+  public boolean addPatient(LocalDate date, Patient patient) {
+    if (!addPatientInternal(date, patient)) {
+      return false;
+    }
+    saveToJson();
+    return true;
+  }
+
+  public boolean deletePatient(LocalDate date, String patientId) {
+    if (!schedule.containsKey(date)) return false;
+
+    List<Patient> dailyList = schedule.get(date);
+    boolean removed = dailyList.removeIf(p -> p.getId().equals(patientId));
+
+    if (removed) {
+      if (dailyList.isEmpty()) {
+        schedule.remove(date);
+      }
+      saveToJson();
+    }
+    return removed;
   }
 }
