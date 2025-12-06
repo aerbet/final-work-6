@@ -18,6 +18,7 @@
             <tr>
                 <th style="width: 80px;">Время</th>
                 <th>ФИО Пациента</th>
+                <th>Дата рождения</th>
                 <th>Тип приема</th>
                 <th>Жалобы (Анамнез)</th>
                 <th style="width: 50px;">Действие</th>
@@ -28,6 +29,7 @@
                 <tr>
                     <td><b>${p.appointmentTime}</b></td>
                     <td>${p.fullName}</td>
+                    <td>${p.birthDate}</td>
                     <td>
                     <span class="type-span ${p.type}">
                         ${p.type}
@@ -35,7 +37,7 @@
                     </td>
                     <td>${p.symptoms}</td>
                     <td style="text-align: center;">
-                        <form action="/delete-patient" method="post" onsubmit="return confirm('Вы уверены?');">
+                        <form action="/delete-patient" method="post">
                             <input type="hidden" name="date" value="${date}">
                             <input type="hidden" name="id" value="${p.id}">
                             <button type="submit" class="btn-delete">✕</button>
@@ -46,41 +48,10 @@
             </tbody>
         </table>
     <#else>
-        <div class="empty-msg">На этот день записей нет. Будьте первым!</div>
+        <div class="empty-msg">На этот день записей нет. Запишите пациента!</div>
     </#if>
 
-    <div class="add-form">
-        <h3>➕ Записать нового пациента</h3>
-        <form action="/add-patient" method="post">
-            <input type="hidden" name="date" value="${date}">
-
-            <div class="form-row">
-                <div class="form-group" style="flex: 2;">
-                    <label>ФИО Пациента:</label>
-                    <input type="text" name="fullName" required placeholder="Иванов Иван Иванович">
-                </div>
-                <div class="form-group">
-                    <label>Время:</label>
-                    <input type="time" name="time" required>
-                </div>
-                <div class="form-group">
-                    <label>Тип:</label>
-                    <select name="type">
-                        <option value="Первичный">Первичный</option>
-                        <option value="Вторичный">Вторичный</option>
-                        <option value="Консультация">Консультация</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 15px;">
-                <label>Жалобы / Анамнез:</label>
-                <input type="text" name="symptoms" required placeholder="Опишите симптомы...">
-            </div>
-
-            <button type="submit" class="btn-submit">Записать пациента</button>
-        </form>
-    </div>
+    <a href="/record?date=${date}" class="btn-submit" style="text-decoration: none; display: inline-block; text-align: center;">Добавить новую запись</a>
 
 </div>
 
