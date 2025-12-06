@@ -36,8 +36,13 @@
                      </span>
                     </td>
                     <td>${p.symptoms}</td>
-                    <td style="text-align: center;">
-                        <form action="/delete-patient" method="post">
+                    <td style="text-align: center; display: flex; gap: 5px; justify-content: center;">
+                        <a href="/edit?date=${date}&id=${p.id}" class="btn-edit"
+                           style="text-decoration: none; background: #ffc107; color: black; padding: 6px 10px; border-radius: 4px; font-size: 12px;">
+                            ✎
+                        </a>
+
+                        <form action="/delete-patient" method="post" onsubmit="return confirm('Вы уверены?');" style="margin: 0;">
                             <input type="hidden" name="date" value="${date}">
                             <input type="hidden" name="id" value="${p.id}">
                             <button type="submit" class="btn-delete">✕</button>
