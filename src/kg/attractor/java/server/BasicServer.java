@@ -55,10 +55,7 @@ public class BasicServer {
 
     try {
       LocalDate date = LocalDate.parse(dateStr);
-      Patient patient = hospitalRepository.getPatientsByDate(date).stream()
-              .filter(p -> p.getId().equals(id))
-              .findFirst()
-              .orElseThrow(() -> new RuntimeException("Пациент не найден"));
+      Patient patient = hospitalRepository.getPatient(date, id);
 
       data.put("date", dateStr);
       data.put("patient", patient);

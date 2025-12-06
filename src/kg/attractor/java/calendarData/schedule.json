@@ -563,13 +563,6 @@
     "appointmentTime" : "11:00:00"
   } ],
   "2025-12-07" : [ {
-    "id" : "a00ee8ea-49f4-4907-a87a-7b3484388c95",
-    "fullName" : "Lobortis. eget, iaculis.",
-    "birthDate" : "1996-06-21",
-    "type" : "Вторичный",
-    "symptoms" : "Lacinia. magna diam. non, quisque congue ex vehicula augue dignissim, ex. pellentesque ligula. praesent velit eli.",
-    "appointmentTime" : "09:00:00"
-  }, {
     "id" : "8ee2d2d9-a15b-43cc-bb50-9f3f8f68f838",
     "fullName" : "Ultrices. amet, velit efficitu.",
     "birthDate" : "1999-12-10",
@@ -597,6 +590,13 @@
     "type" : "Первичный",
     "symptoms" : "Hendrerit gravida. dui. cras. malesuada. posuere, ipsum porttitor. dignissim. ultricies, dapibus, hendrerit. congue vehicula. penatibus in.",
     "appointmentTime" : "13:30:00"
+  }, {
+    "id" : "a00ee8ea-49f4-4907-a87a-7b3484388c95",
+    "fullName" : "Lobortis. eget, iaculis.",
+    "birthDate" : "1996-06-21",
+    "type" : "Первичный",
+    "symptoms" : "Lacinia. magna diam. non, quisque congue ex vehicula augue dignissim, ex. pellentesque ligula. praesent velit eli.",
+    "appointmentTime" : "09:00:00"
   } ],
   "2025-12-06" : [ {
     "id" : "0399fce9-18d1-4c26-aa00-f858590124ac",
@@ -612,6 +612,13 @@
     "type" : "Вторичный",
     "symptoms" : "Ut. pharetra, dictum dui. ac nulla. proin nullam adipiscing euismod blandit. maximus, in elementum, ante a. tempus nibh, sodales. lorem. in leo, dapibus ultrices.",
     "appointmentTime" : "10:30:00"
+  }, {
+    "id" : "00f952d8-6d50-453d-beaa-bd9cb2bcf45c",
+    "fullName" : "Жапаров Эрбол",
+    "birthDate" : "2025-12-06",
+    "type" : "Первичный",
+    "symptoms" : "Новый вирус, ужасная слабость, температура не спадает, судороги.",
+    "appointmentTime" : "19:16:00"
   } ],
   "2026-01-05" : [ {
     "id" : "b1684701-5977-429c-af62-6f69b8ba7066",
