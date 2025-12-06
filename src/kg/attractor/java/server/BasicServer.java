@@ -25,7 +25,7 @@ public class BasicServer {
   private Map<String, RouteHandler> routes = new HashMap<>();
   private final String dataDir = "data";
   private final HttpServer server;
-  private HospitalRepository hospitalRepository;
+  private final HospitalRepository hospitalRepository;
 
   public BasicServer(String host, int port) throws IOException {
     server = createServer(host, port);
@@ -33,8 +33,35 @@ public class BasicServer {
     this.hospitalRepository = new HospitalRepository();
 
     registerGet("/calendar", this::calendarHandler);
+    registerGet("/day", this::dayHandler);
   }
 
+  private void dayHandler(HttpExchange exchange) {
+    Map<String, Object> data = new HashMap<>();
+    String query = exchange.getRequestURI().getQuery();
+
+    Map<String, String> params = Utils.parseUrlEncoded(query, "&");
+    String dateStr = params.get("date");
+
+    try {
+      if (dateStr == null || dateStr.isBlank()) {
+        redirect(exchange, "/calendar");
+        return;
+      }
+
+      LocalDate date = LocalDate.parse(dateStr);
+      List<Patient> patients = hospitalRepository.getPatientsByDate(date);
+
+      data.put("date", date.toString());
+      data.put("patients", patients);
+
+      renderTemplate(exchange, "day.ftl", data);
+
+    } catch (Exception e) {
+      e.printStackTrace();
+      renderError(exchange, "Ошибка отображения дня: " + e.getMessage());
+    }
+  }
 
   private void calendarHandler(HttpExchange exchange) {
     Map<String, Object> data = new HashMap<>();
